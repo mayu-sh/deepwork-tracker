@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-// ─── Firebase 設定 ───
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyA7-4XNyskePOErHQheuCn0tkKWQ4GjIMs",
   authDomain: "awesome-project-of-mss.firebaseapp.com",
@@ -11,17 +11,19 @@ const firebaseConfig = {
   appId: "1:163734017895:web:8d5f38042b621fa77c41c2"
 };
 
-// ─── Firebase 初期化 ───
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ─── 初期値 ───
-let goalYou = 600;
-let goalFriend = 600;
-let nickYou = "You";
-let nickFriend = "Friend";
+// State
+let goals = { you: 300, friend: 280 };
+let nicknames = { you: "Player1", friend: "Player2" };
+let totals = { you: 0, friend: 0 };
 
-// ─── 今週の月曜日を取得 ───
+// Chart objects
+let chartYou, chartFriend;
+
+// Helper for cumulative
 function getWeekStart() {
   const d = new Date();
   const day = d.getDay();
@@ -29,40 +31,7 @@ function getWeekStart() {
   return new Date(d.setDate(diff)).toISOString().split("T")[0];
 }
 
-// ─── 勉強分数追加 ───
-export async function addStudyTime() {
-  const person = document.getElementById("person").value;
-  const minutes = Number(document.getElementById("minutes").value);
-  if (!minutes) return;
-  const date = new Date().toISOString().split("T")[0];
-
-  await addDoc(collection(db, "study"), {
-    person,
-    minutes,
-    date,
-    weekStart: getWeekStart()
-  });
-
-  document.getElementById("minutes").value = "";
-  loadData();
-}
-
-// ─── 目標更新 ───
-export function updateGoals() {
-  goalYou = Number(document.getElementById("goalYou").value) || goalYou;
-  goalFriend = Number(document.getElementById("goalFriend").value) || goalFriend;
-  renderCharts(window.cachedData);
-}
-
-// ─── ニックネーム更新 ───
-export function updateNicknames() {
-  nickYou = document.getElementById("nickYou").value || nickYou;
-  nickFriend = document.getElementById("nickFriend").value || nickFriend;
-  document.getElementById("labelYou").innerText = `${nickYou}: ${document.getElementById("totalYou").innerText} min`;
-  document.getElementById("labelFriend").innerText = `${nickFriend}: ${document.getElementById("totalFriend").innerText} min`;
-}
-
-// ─── データ取得 ───
+// Load from Firebase
 async function loadData() {
   const snapshot = await getDocs(collection(db, "study"));
   const weekStart = getWeekStart();
@@ -70,63 +39,157 @@ async function loadData() {
   let data = { you: [], friend: [] };
   snapshot.forEach(doc => {
     const d = doc.data();
-    if (d.weekStart === weekStart) data[d.person].push(d);
+    if (d.weekStart === weekStart) data[d.person].push(d.minutes);
   });
 
-  window.cachedData = data;
-  renderCharts(data);
+  totals.you = data.you.reduce((a,b)=>a+b,0);
+  totals.friend = data.friend.reduce((a,b)=>a+b,0);
+
+  updateCharts();
 }
 
-// ─── 曜日ごとの累積計算 ───
-function cumulativeByDay(entries) {
-  const totals = Array(7).fill(0);
-  entries.forEach(e => {
-    const date = new Date(e.date);
-    const index = (date.getDay() + 6) % 7;
-    totals[index] += e.minutes;
+// Add minutes
+window.addMinutes = async function(person) {
+  const input = prompt(`Enter minutes studied for ${nicknames[person]}:`);
+  const minutes = Number(input);
+  if (!minutes) return;
+
+  await addDoc(collection(db, "study"), {
+    person,
+    minutes,
+    date: new Date().toISOString().split("T")[0],
+    weekStart: getWeekStart()
   });
-  for (let i = 1; i < 7; i++) totals[i] += totals[i-1];
-  return totals;
+
+  await loadData();
+
+  if (totals[person] >= goals[person]) {
+    confetti();
+  }
 }
 
-// ─── グラフ描画 ───
-function renderCharts(data) {
-  const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-  const youData = cumulativeByDay(data.you);
-  const friendData = cumulativeByDay(data.friend);
-
-  document.getElementById("totalYou").innerText = youData[6];
-  document.getElementById("totalFriend").innerText = friendData[6];
-
-  document.getElementById("labelYou").innerText = `${nickYou}: ${youData[6]} min`;
-  document.getElementById("labelFriend").innerText = `${nickFriend}: ${friendData[6]} min`;
-
-  if (youData[6] >= goalYou) confetti();
-  if (friendData[6] >= goalFriend) confetti();
-
+// Chart rendering
+function updateCharts() {
   const ctxYou = document.getElementById("chartYou").getContext("2d");
   const ctxFriend = document.getElementById("chartFriend").getContext("2d");
 
-  if (window.chartYou) window.chartYou.destroy();
-  if (window.chartFriend) window.chartFriend.destroy();
+  if (chartYou) chartYou.destroy();
+  if (chartFriend) chartFriend.destroy();
 
-  window.chartYou = new Chart(ctxYou, { type: "bar",
-    data: { labels: days, datasets: [{ data: youData, backgroundColor: gradient(ctxYou) }] },
-    options: { scales: { y: { beginAtZero: true } } }
-  });
+chartYou = new Chart(ctxYou, {
+  type: "bar",
+  data: {
+    labels: ["Deep Work"],
+    datasets: [{
+      data: [totals.you],
+      backgroundColor: "#4facfe"
+    }]
+  },
+  options: {
+    indexAxis: 'x',
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: Math.max(totals.you, goals.you)*1.2
+      }
+    },
+    plugins: {
+      annotation: {
+        annotations: {
+          goalLine: {
+            type: 'line',
+            yMin: goals.you,
+            yMax: goals.you,
+            borderColor: 'red',
+            borderWidth: 3,
+            label: {
+              content: 'Goal',
+              enabled: true,
+              position: 'start'
+            }
+          }
+        }
+      }
+    }
+  },
+  plugins: [ChartAnnotation]
+});
 
-  window.chartFriend = new Chart(ctxFriend, { type: "bar",
-    data: { labels: days, datasets: [{ data: friendData, backgroundColor: gradient(ctxFriend) }] },
-    options: { scales: { y: { beginAtZero: true } } }
-  });
+chartFriend = new Chart(ctxFriend, {
+  type: "bar",
+  data: {
+    labels: ["Deep Work"],
+    datasets: [{
+      data: [totals.friend],
+      backgroundColor: "#4facfe"
+    }]
+  },
+  options: {
+    indexAxis: 'x',
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: Math.max(totals.friend, goals.friend)*1.2
+      }
+    },
+    plugins: {
+      annotation: {
+        annotations: {
+          goalLine: {
+            type: 'line',
+            yMin: goals.friend,
+            yMax: goals.friend,
+            borderColor: 'red',
+            borderWidth: 3,
+            label: {
+              content: 'Goal',
+              enabled: true,
+              position: 'start'
+            }
+          }
+        }
+      }
+    }
+  },
+  plugins: [ChartAnnotation]
+});
+
+
+  // Update status
+  document.getElementById("statusYou").innerText = (totals.you >= goals.you ? "+" : "-") + Math.abs(totals.you-goals.you) + " min";
+  document.getElementById("statusFriend").innerText = (totals.friend >= goals.friend ? "+" : "-") + Math.abs(totals.friend-goals.friend) + " min";
+
+  // Update nicknames
+  document.getElementById("nickYou").innerText = nicknames.you;
+  document.getElementById("nickFriend").innerText = nicknames.friend;
 }
 
-function gradient(ctx) {
-  const grad = ctx.createLinearGradient(0,0,0,400);
-  grad.addColorStop(0,"#4facfe");
-  grad.addColorStop(1,"#00f2fe");
-  return grad;
+// Settings toggle
+window.toggleSettings = function() {
+  const panel = document.getElementById("settingsPanel");
+  panel.style.display = panel.style.display === "block" ? "none" : "block";
 }
 
-// 初回ロード
+// Update settings
+window.updateSettings = function() {
+  nicknames.you = document.getElementById("inputNickYou").value || nicknames.you;
+  nicknames.friend = document.getElementById("inputNickFriend").value || nicknames.friend;
+  goals.you = Number(document.getElementById("inputGoalYou").value) || goals.you;
+  goals.friend = Number(document.getElementById("inputGoalFriend").value) || goals.friend;
+
+  updateCharts();
+}
+
+// Reset
+window.resetStats = async function() {
+  const snapshot = await getDocs(collection(db, "study"));
+  for (const docSnap of snapshot.docs) {
+    const ref = doc(db, "study", docSnap.id);
+    await ref.delete();
+  }
+  totals = { you: 0, friend: 0 };
+  updateCharts();
+}
+
+// Initial load
 loadData();

@@ -1,61 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Weekly Study Tracker</title>
+  <title>Weekly Deep Work Tracker</title>
 
-  <!-- Chart.js CDN -->
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- Confetti CDN -->
+  <!-- Chart.js annotation plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <!-- Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-  <!-- CSS -->
-  <link rel="stylesheet" href="styles/styles.css" />
+  <link rel="stylesheet" href="styles/styles.css">
 </head>
 <body>
 
-  <h1>Weekly Study Tracker</h1>
+  <h1>Weekly Deep Work Tracker</h1>
 
-  <!-- ニックネーム設定 -->
-  <div class="nickname-section">
-    <input type="text" id="nickYou" placeholder="Your nickname" />
-    <input type="text" id="nickFriend" placeholder="Friend nickname" />
-    <button onclick="updateNicknames()">Set Nicknames</button>
-  </div>
-
-  <!-- 勉強分数入力 -->
-  <div class="input-section">
-    <select id="person">
-      <option value="you">You</option>
-      <option value="friend">Friend</option>
-    </select>
-    <input type="number" id="minutes" placeholder="Minutes studied" />
-    <button onclick="addStudyTime()">Add</button>
-  </div>
-
-  <!-- 目標設定 -->
-  <div class="goal-section">
-    <input type="number" id="goalYou" placeholder="Your weekly goal (min)" />
-    <input type="number" id="goalFriend" placeholder="Friend weekly goal (min)" />
-    <button onclick="updateGoals()">Update Goals</button>
-  </div>
-
-  <!-- グラフ -->
-  <div class="grid">
-    <div>
-      <h2 id="labelYou">You: <span id="totalYou">0</span> min</h2>
+  <!-- Main Chart Section -->
+  <div class="chart-container">
+    <div class="player-container">
+      <div class="status" id="statusYou">0 min left</div>
       <canvas id="chartYou"></canvas>
+      <div class="nickname-section">
+        <span id="nickYou">Player1</span>
+        <button onclick="addMinutes('you')">+</button>
+      </div>
     </div>
 
-    <div>
-      <h2 id="labelFriend">Friend: <span id="totalFriend">0</span> min</h2>
+    <div class="player-container">
+      <div class="status" id="statusFriend">0 min left</div>
       <canvas id="chartFriend"></canvas>
+      <div class="nickname-section">
+        <span id="nickFriend">Player2</span>
+        <button onclick="addMinutes('friend')">+</button>
+      </div>
     </div>
   </div>
 
-  <!-- JS -->
+  <!-- Settings (hidden by default) -->
+  <div id="settingsPanel" class="settings-panel">
+    <h2>Settings</h2>
+    <div>
+      <label>Player 1 Name: <input type="text" id="inputNickYou" placeholder="Player1"></label>
+      <label>Weekly Goal (min): <input type="number" id="inputGoalYou" value="300"></label>
+    </div>
+    <div>
+      <label>Player 2 Name: <input type="text" id="inputNickFriend" placeholder="Player2"></label>
+      <label>Weekly Goal (min): <input type="number" id="inputGoalFriend" value="280"></label>
+    </div>
+    <button onclick="updateSettings()">Update</button>
+    <button onclick="resetStats()">Reset Statistics</button>
+  </div>
+
+  <!-- Gear Button -->
+  <button class="gear-button" onclick="toggleSettings()">⚙</button>
+
   <script type="module" src="scripts/main.js"></script>
 </body>
 </html>
