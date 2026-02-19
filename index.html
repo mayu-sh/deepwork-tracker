@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weekly Study Tracker</title>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="styles/styles.css" />
+</head>
+<body>
+
+  <h1>Weekly Study Tracker</h1>
+
+  <!-- ニックネーム設定 -->
+  <div class="nickname-section">
+    <input type="text" id="nickYou" placeholder="Your nickname" />
+    <input type="text" id="nickFriend" placeholder="Friend nickname" />
+    <button onclick="updateNicknames()">Set Nicknames</button>
+  </div>
+
+  <!-- 勉強分数入力 -->
+  <div class="input-section">
+    <select id="person">
+      <option value="you">You</option>
+      <option value="friend">Friend</option>
+    </select>
+    <input type="number" id="minutes" placeholder="Minutes studied" />
+    <button onclick="addStudyTime()">Add</button>
+  </div>
+
+  <!-- 目標設定 -->
+  <div class="goal-section">
+    <input type="number" id="goalYou" placeholder="Your weekly goal (min)" />
+    <input type="number" id="goalFriend" placeholder="Friend weekly goal (min)" />
+    <button onclick="updateGoals()">Update Goals</button>
+  </div>
+
+  <!-- グラフ -->
+  <div class="grid">
+    <div>
+      <h2 id="labelYou">You: <span id="totalYou">0</span> min</h2>
+      <canvas id="chartYou"></canvas>
+    </div>
+
+    <div>
+      <h2 id="labelFriend">Friend: <span id="totalFriend">0</span> min</h2>
+      <canvas id="chartFriend"></canvas>
+    </div>
+  </div>
+
+  <!-- JS -->
+  <script type="module" src="scripts/main.js"></script>
+</body>
+</html>
